@@ -114,8 +114,15 @@ class PyLayman(SyncBase):
     def __init__(self):
         SyncBase.__init__(self, 'layman', 'app-portage/layman')
 
+        self._layman = None
+
 
     def _get_layman_api(self):
+
+        # Make it so that we aren't initializing the
+        # LaymanAPI instance if it already exists.
+        if self._layman:
+            return self._layman
 
         config = BareConfig()
         self.message = Message(out=sys.stdout, err=sys.stderr)
@@ -138,6 +145,9 @@ class PyLayman(SyncBase):
                                report_errors=True,
                                output=self.config['output']
                                )
+
+        self._layman = layman_api
+
         return layman_api
 
     def new(self, **kwargs):
