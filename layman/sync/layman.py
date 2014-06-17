@@ -33,29 +33,59 @@ class Layman(SyncBase):
         SyncBase.__init__(self, 'layman', 'app-portage/layman')
 
 
+    def _get_optargs(self, args):
+         if self.settings:
+            if self.settings.get('NOCOLOR'):
+                args.append('-N')
+            if self.settings.get('PORTAGE_QUIET'):
+                args.append('-q')
+
     def new(self, **kwargs):
         '''Do the initial download and install of the repository'''
-        pass
+        if kwargs:
+            self._kwargs(kwargs)
+        emerge_config = self.options.get('emerge_config', None)
+        portdb = self.options.get('portdb', None)
+        args = []
+        msg = '>>> Starting to add new layman overlay %(repo)s' % ({'repo': self.repo.name})
+        self.logger(self.xterm_titles, msg)
+        writemsg_level(msg + '\n')
 
+        args.append('layman -n')
+        self._get_optargs(args)
+        args.append('-a')
+        args.append(self.repo.name)
+
+        command = ' '.join(args)
+
+        exitcode = portage.process.spawn_bash("%(command)s" % \
+            ({'command': command}),
+            **portage._native_kwargs(self.spawn_kwargs))
+        if exitcode != os.EX_OK:
+            msg = "!!! layman sync error in %(repo)s" % ({'repo': self.repo.name})
+            self.logger(self.xterm_titles, msg)
+            writemsg_level(msg + "\n", level=logging.ERROR, noiselevel=-1)
+            return (exitcode, False)
+        msg = ">>> Addition of layman repo succeeded: %(repo)s" % ({'repo': self.repo.name})
+        self.logger(self.xterm_titles, msg)
+        writemsg_level(msg + "\n")
+
+        return (exitcode, True)
 
     def _sync(self):
         ''' Update existing repository'''
         emerge_config = self.options.get('emerge_config', None)
         portdb = self.options.get('portdb', None)
         args = []
-        msg = '>>> Starting layman sync for %s...' % self.repo.location
+        msg = '>>> Starting layman sync for %s...' % self.repo.name
         self.logger(self.xterm_titles, msg)
         writemsg_level(msg + '\n')
+
         args.append('layman -n')
-
-        if self.settings:
-            if self.settings.get('NOCOLOR'):
-                args.append('-N')
-            if self.settings.get('PORTAGE_QUIET'):
-                args.append('-q')
-
+        self._get_optargs(args)
         args.append('-s')
         args.append(self.repo.name)
+
         exitcode = portage.process.spawn_bash("%s" % \
             (' '.join(args)),
             **portage._native_kwargs(self.spawn_kwargs))
@@ -81,30 +111,33 @@ class PyLayman(SyncBase):
         return "Layman"
 
     def __init__(self):
+        SyncBase.__init__(self, 'layman', 'app-portage/layman')
 
-        SyncBase.__init__(self, '', 'app-portage/layman')
+
+    def _get_layman_api(self):
 
         config = BareConfig()
         self.message = Message(out=sys.stdout, err=sys.stderr)
-        
+
         options = {
             'config': config.get_option('config'),
-            'quiet': portage.settings.get('PORTAGE_QUIET'),
+            'quiet': self.settings.get('PORTAGE_QUIET'),
             'quietness': config.get_option('quietness'),
             'output': self.message,
-            'nocolor': portage.settings.get('NOCOLOR'),
-            'root': portage.settings.get('EROOT'),
-            'verbose': portage.settings.get('PORTAGE_VERBOSE'),
-            'width': portage.settings.get('COLUMNWIDTH'),
+            'nocolor': self.settings.get('NOCOLOR'),
+            'root': self.settings.get('EROOT'),
+            'verbose': self.settings.get('PORTAGE_VERBOSE'),
+            'width': self.settings.get('COLUMNWIDTH'),
 
         }
 
         self.config = OptionConfig(options=options)
-        
-        LaymanAPI.__init__(self, self.config,
-                             report_errors=True,
-                             output=self.config['output']
-                            )
+
+        layman_api = LaymanAPI(self.config,
+                               report_errors=True,
+                               output=self.config['output']
+                               )
+        return layman_api
 
     def new(self, **kwargs):
         '''Do the initial download and install of the repository'''
@@ -113,4 +146,4 @@ class PyLayman(SyncBase):
    
     def _sync(self):
         ''' Update existing repository'''
-        pass
+        layman_inst = self._get_layman_api()
