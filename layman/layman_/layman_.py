@@ -142,6 +142,7 @@ class PyLayman(SyncBase):
             'output': self.message,
             'nocolor': self.settings.get('NOCOLOR'),
             'root': self.settings.get('EROOT'),
+            'storage': self.repo.location.replace(self.repo.name, ''),
             'verbose': self.settings.get('PORTAGE_VERBOSE'),
             'width': self.settings.get('COLUMNWIDTH'),
 
