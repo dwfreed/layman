@@ -41,7 +41,7 @@ class Layman(SyncBase):
                 args.append('-q')
 
     def new(self, **kwargs):
-        '''Do the initial download and install of the repository'''
+        '''Use layman to install the repository'''
         if kwargs:
             self._kwargs(kwargs)
         emerge_config = self.options.get('emerge_config', None)
@@ -62,7 +62,7 @@ class Layman(SyncBase):
             ({'command': command}),
             **portage._native_kwargs(self.spawn_kwargs))
         if exitcode != os.EX_OK:
-            msg = "!!! layman sync error in %(repo)s" % ({'repo': self.repo.name})
+            msg = "!!! layman add error in %(repo)s" % ({'repo': self.repo.name})
             self.logger(self.xterm_titles, msg)
             writemsg_level(msg + "\n", level=logging.ERROR, noiselevel=-1)
             return (exitcode, False)
@@ -77,7 +77,7 @@ class Layman(SyncBase):
         emerge_config = self.options.get('emerge_config', None)
         portdb = self.options.get('portdb', None)
         args = []
-        msg = '>>> Starting layman sync for %s...' % self.repo.name
+        msg = '>>> Starting layman sync for %(repo)s...' % ({'repo': self.repo.name})
         self.logger(self.xterm_titles, msg)
         writemsg_level(msg + '\n')
 
@@ -86,15 +86,16 @@ class Layman(SyncBase):
         args.append('-s')
         args.append(self.repo.name)
 
-        exitcode = portage.process.spawn_bash("%s" % \
-            (' '.join(args)),
+        command = ' '.join(args)
+        exitcode = portage.process.spawn_bash("%(command)s" % \
+            ({'command': command}),
             **portage._native_kwargs(self.spawn_kwargs))
         if exitcode != os.EX_OK:
-            msg = "!!! layman sync error in %s" % self.repo.name
+            msg = "!!! layman sync error in %(repo)s" % ({'repo': self.repo.name})
             self.logger(self.xterm_titles, msg)
             writemsg_level(msg + "\n", level=logging.ERROR, noiselevel=-1)
             return (exitcode, False)
-        msg = ">>> layman sync succeeded: %s" % self.repo.name
+        msg = ">>> layman sync succeeded: %(repo)s" % ({'repo': self.repo.name})
         self.logger(self.xterm_titles, msg)
         writemsg_level(msg + "\n")
 
@@ -141,8 +142,24 @@ class PyLayman(SyncBase):
 
     def new(self, **kwargs):
         '''Do the initial download and install of the repository'''
-        pass
+        layman_inst = self._get_layman_api()
 
+        emerge_config = self.options.get('emerge_config', None)
+        portdb = self.options.get('portdb', None)
+
+        msg = '>>> Starting to add new layman overlay %(repo)s' % ({'repo': self.repo.name})
+        self.logger(self.xterm_titles, msg)
+        writemsg_level(msg + '\n')
+
+        exitcode = layman_inst.add_repos(self.repo.name)
+        if exitcode != os.EX_OK:
+            msg = "!!! layman add error in %(repo)s" % ({'repo': self.repo.name})
+            self.logger(self.xterm_titles, msg)
+            writemsg_level(msg + "\n", level=logging.ERROR, noiselevel=-1)
+            return (exitcode, False)
+        msg = ">>> Addition of layman repo succeeded: %(repo)s" % ({'repo': self.repo.name})
+        self.logger(self.xterm_titles, msg)
+        writemsg_level(msg + '\n')
    
     def _sync(self):
         ''' Update existing repository'''
@@ -160,8 +177,8 @@ class PyLayman(SyncBase):
             msg = "!!! layman sync error in %(repo)s" % ({'repo': self.repo.name})
             self.logger(self.xterm_titles, msg)
             writemsg_level(msg + "\n", level=logging.ERROR, noiselevel=-1)
-            return(exitcode, False)
-        msg = ">>> layman sync succeeded: %s" % self.repo.name
+            return (exitcode, False)
+        msg = ">>> layman sync succeeded: %(repo)s" % ({'repo': self.repo.name})
         self.logger(self.xterm_titles, msg)
         writemsg_level(msg + "\n")
 
