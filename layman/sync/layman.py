@@ -147,3 +147,22 @@ class PyLayman(SyncBase):
     def _sync(self):
         ''' Update existing repository'''
         layman_inst = self._get_layman_api()
+
+        emerge_config = self.options.get('emerge_config', None)
+        portdb = self.options.get('portdb', None)
+
+        msg = '>>> Starting layman sync for %(repo)s...' % ({'repo': self.repo.name})
+        self.logger(self.xterm_titles, msg)
+        writemsg_level(msg + '\n')
+
+        exitcode = layman_inst.sync(self.repo.name)
+        if exitcode != os.EX_OK:
+            msg = "!!! layman sync error in %(repo)s" % ({'repo': self.repo.name})
+            self.logger(self.xterm_titles, msg)
+            writemsg_level(msg + "\n", level=logging.ERROR, noiselevel=-1)
+            return(exitcode, False)
+        msg = ">>> layman sync succeeded: %s" % self.repo.name
+        self.logger(self.xterm_titles, msg)
+        writemsg_level(msg + "\n")
+
+        return(exitcode, True)
