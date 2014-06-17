@@ -24,6 +24,8 @@ except KeyError:
     pass
 
 
+print("Using config class: " + config_class)
+
 module_spec = {
     'name': 'layman',
     'description': __doc__,
