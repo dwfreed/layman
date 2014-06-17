@@ -18,7 +18,7 @@ options = {'1': 'Layman', '2': 'PyLayman'}
 config_class = DEFAULT_CLASS
 try:
     test_param = os.environ["TESTIT"]
-    if test_param in options:
+    if str(test_param) in options:
         config_class = options[test_param]
 except KeyError:
     pass
@@ -35,7 +35,7 @@ module_spec = {
             'functions': ['sync', 'new', 'exists'],
             'func_desc': {
                 'sync': 'Performs a layman sync of the specified overlay',
-                'new': 'Currently does nothing',
+                'new': 'Performs a layman add of the specified overlay',
                 'exists': 'Returns a boolean of whether the specified dir ' +
                     'exists and is a valid repository',
             },
