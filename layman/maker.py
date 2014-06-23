@@ -22,10 +22,12 @@ from __future__ import unicode_literals
 import layman.overlays.overlay as Overlay
 import xml.etree.ElementTree   as ET
 
+import copy
 import sys
 
 from   layman.api            import LaymanAPI
 from   layman.compatibility  import fileopen
+from   layman.constants      import COMPONENT_DEFAULTS, POSSIBLE_COMPONENTS
 from   layman.config         import BareConfig
 from   layman.utils          import indent
 
@@ -51,6 +53,8 @@ class Interactive(object):
             print('Overlay #%(x)s: ' % ({'x': str(x)}))
             print('~~~~~~~~~~~~~')
 
+            self.update_required()
+            print('')
             self.get_overlay_components()
             ovl = Overlay.Overlay(config=self.config, ovl_dict=self.overlay, ignore=1)
             repo.append(ovl.to_xml())
@@ -110,10 +114,11 @@ class Interactive(object):
         Prompts user for optional components and updates
         the required components accordingly.
         '''
-        possible_components = ['name', 'description', 'homepage', 'owner', 'quality',
-                           'priority', 'sources', 'branch', 'irc', 'feed']
+        # Don't assume they want the same
+        # info for the next overlay.
+        self.required = copy.deepcopy(COMPONENT_DEFAULTS)
 
-        for possible in possible_components:
+        for possible in POSSIBLE_COMPONENTS:
             if possible not in self.required:
                 available = self.get_ans("Include %(comp)s for this overlay? [y/n]: " \
                     % ({'comp': possible}))
@@ -137,6 +142,7 @@ class Interactive(object):
                 feeds.append(self.get_input('Define overlay feed: '))
 
         self.overlay['feeds'] = feeds
+        print('')
 
 
     def get_sources(self):
@@ -176,42 +182,48 @@ class Interactive(object):
             self.overlay['sources'].append(sources)
         print('')
 
+
+    def get_owner(self):
+        '''
+        Prompts user for overlay owner info and
+        then appends the values to the overlay
+        being created.
+        '''
+        print('')
+        self.overlay['owner_name'] = self.get_input('Define owner name: ')
+        self.overlay['owner_email'] = self.get_input('Define owner email: ')
+        print('')
+
+
+    def get_component(self, component, msg):
+        '''
+        Sets overlay component value.
+
+        @params component: (str) component to be set
+        @params msg: (str) prompt message for component
+        '''
+        if component not in ('branch', 'type'):
+            if component in ('feeds', 'owner', 'sources'):
+                getattr(self, 'get_%(comp)s' % ({'comp': component}))()
+            else:
+                self.overlay[component] = getattr(self, 'get_input')(msg)
+
+
     def get_overlay_components(self):
         '''
         Acquires overlay components via user interface.
         '''
-        self.update_required()
+        self.overlay = {}
 
         for component in self.required:
-
-            if 'feeds' in component:
-                self.get_feeds(overlay)
-                print('')
-
-            elif 'name' in component:
-                print('')
-                self.overlay['name'] = self.get_input('Define overlay name: ')
-
-            elif 'owner' in component:
-                print('')
-                self.overlay['owner_name'] = self.get_input('Define owner name: ')
-                self.overlay['owner_email'] = self.get_input('Define owner email: ')
-                print('')
-
-            elif 'sources' in component:
-                self.get_sources()
-
-            else:
-                if 'type' not in component and 'branch' not in component:
-                    self.overlay[component] = self.get_input('Define %(comp)s: '\
-                        % ({'comp': component}))
+            self.get_component(component, 'Define %(comp)s: '\
+                                % ({'comp': component}))
 
 
     def write(self):
         '''
         Writes overlay file to desired location.
         '''
-        print('')
         filename = self.get_input('Desired overlay file name: ')
         filepath = self.get_input('Desired output path: ')
 
