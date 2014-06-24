@@ -42,7 +42,9 @@ class Interactive(object):
     def __init__(self):
         self.config = BareConfig()
         self.overlay = {}
-        self.supported_types = LaymanAPI(config=self.config).supported_types()
+        self.layman_inst = LaymanAPI(config=self.config)
+        self.supported_types = self.layman_inst.supported_types()
+        self.overlays_available = self.layman_inst.get_available()
 
     def __call__(self):
 
@@ -145,6 +147,20 @@ class Interactive(object):
         print('')
 
 
+    def get_name(self):
+        '''
+        Prompts user for the overlay name
+        and updates the overlay dict.
+        '''
+        name = self.get_input('Define overlay name: ')
+
+        while name in self.overlays_available:
+            print('!!! Overlay name already defined in list of installed overlays.')
+            name = self.get_input('Please specify a different overlay name: ')
+
+        self.overlay['name'] = name
+
+
     def get_sources(self):
         '''
         Prompts user for possible overlay source
@@ -203,7 +219,7 @@ class Interactive(object):
         @params msg: (str) prompt message for component
         '''
         if component not in ('branch', 'type'):
-            if component in ('feeds', 'owner', 'sources'):
+            if component in ('feeds', 'name', 'owner', 'sources'):
                 getattr(self, 'get_%(comp)s' % ({'comp': component}))()
             else:
                 self.overlay[component] = getattr(self, 'get_input')(msg)
