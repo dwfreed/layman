@@ -42,11 +42,11 @@ class Interactive(object):
 
     def __init__(self):
         self.config = BareConfig()
+        self.layman_inst = LaymanAPI(config=self.config)
         self.overlay = {}
         self.overlays = []
-        self.layman_inst = LaymanAPI(config=self.config)
-        self.supported_types = self.layman_inst.supported_types()
         self.overlays_available = self.layman_inst.get_available()
+        self.supported_types = self.layman_inst.supported_types().keys()
 
     def __call__(self):
 
@@ -105,7 +105,37 @@ class Interactive(object):
         if ovl_type.lower() in self.supported_types:
             return ovl_type.lower()
         print('Specified type "%(type)s" not valid.' % ({'type': ovl_type}))
-        print('Supported types include: %(types)s.' % ({'types': ', '.join(self.supported_types)}))
+        print('Supported types include: %(types)s.'\
+            % ({'types': ', '.join(self.supported_types)}))
+        return None
+
+
+    def guess_overlay_type(self, source_uri):
+        '''
+        Guesses the overlay type based on the source given.
+
+        @params source-uri: str of source.
+        @rtype None or str (if overlay type was guessed correctly).
+        '''
+
+        type_checks = copy.deepcopy(self.supported_types)
+
+        #Modify the type checks for special overlay types.
+        if 'tar' in type_checks:
+            type_checks.remove(type_checks[type_checks.index('tar')])
+            type_checks.insert(len(type_checks), '.tar')
+                
+        if 'bzr' in type_checks:
+            type_checks.remove(self.supported_types[type_checks.index('bzr')])
+            type_checks.insert(len(type_checks), 'bazaar')
+
+        for guess in type_checks:
+            if guess in source_uri:
+                return guess
+
+        if 'bitbucket.org' in source_uri:
+            return 'mercurial'
+
         return None
 
 
@@ -169,9 +199,6 @@ class Interactive(object):
         ovl_type = None
         source_amount = int(self.get_input('How many sources exist for this overlay?: '))
 
-        while not ovl_type:
-            ovl_type = self.check_overlay_type(self.get_input('Define overlay\'s type: '))
-
         self.overlay['sources'] = []
 
         for i in range(1, source_amount + 1):
@@ -179,6 +206,11 @@ class Interactive(object):
             if source_amount > 1:
                 sources.append(self.get_input('Define source[%(i)s] URL: '\
                     % ({'i': str(i)})))
+                ovl_type = self.guess_overlay_type(sources[0])
+                while not ovl_type:
+                    ovl_type = self.check_overlay_type(\
+                                    self.get_input('Unable to determine overlay type.\n'\
+                                                   'Please provide overlay type: '))
                 sources.append(ovl_type)
                 if 'branch' in self.required:
                     sources.append(self.get_input('Define source[%(i)s]\'s '\
@@ -187,6 +219,11 @@ class Interactive(object):
                     sources.append('')
             else:
                 sources.append(self.get_input('Define source URL: '))
+                ovl_type = self.guess_overlay_type(sources[0])
+                while not ovl_type:
+                    ovl_type = self.check_overlay_type(\
+                                    self.get_input('Unable to determine overlay.\n'\
+                                                   'Please provide overlay type: '))
                 sources.append(ovl_type)
                 if 'branch' in self.required:
                     sources.append(self.get_input('Define source branch (if applicable): '))
