@@ -48,19 +48,22 @@ class Interactive(object):
         self.overlays_available = self.layman_inst.get_available()
         self.supported_types = self.layman_inst.supported_types().keys()
 
-    def __call__(self):
+    def __call__(self, overlay_package=None):
 
-        for x in range(1, int(self.get_input("How many overlays would you like to create?: "))+1):
-            print('')
-            print('Overlay #%(x)s: ' % ({'x': str(x)}))
-            print('~~~~~~~~~~~~~')
+        if not overlay_package:
+            for x in range(1, int(self.get_input("How many overlays would you like to create?: "))+1):
+                print('')
+                print('Overlay #%(x)s: ' % ({'x': str(x)}))
+                print('~~~~~~~~~~~~~')
 
-            self.update_required()
-            print('')
-            self.get_overlay_components()
-            ovl = Overlay.Overlay(config=self.config, ovl_dict=self.overlay, ignore=1)
-            self.overlays.append((self.overlay['name'], ovl))
-
+                self.update_required()
+                print('')
+                self.get_overlay_components()
+                ovl = Overlay.Overlay(config=self.config, ovl_dict=self.overlay, ignore=1)
+                self.overlays.append((self.overlay['name'], ovl))
+        else:
+            ovl_name, ovl = overlay_package
+            self.overlays.append(ovl_name, ovl)
         self.write()
 
 
