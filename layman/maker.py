@@ -23,6 +23,7 @@ import layman.overlays.overlay as Overlay
 import xml.etree.ElementTree   as ET
 
 import copy
+import os
 import sys
 
 from   layman.api            import LaymanAPI
@@ -42,13 +43,12 @@ class Interactive(object):
     def __init__(self):
         self.config = BareConfig()
         self.overlay = {}
+        self.overlays = []
         self.layman_inst = LaymanAPI(config=self.config)
         self.supported_types = self.layman_inst.supported_types()
         self.overlays_available = self.layman_inst.get_available()
 
     def __call__(self):
-
-        repo = ET.Element('repositories', version='1.0', encoding=_UNICODE)
 
         for x in range(1, int(self.get_input("How many overlays would you like to create?: "))+1):
             print('')
@@ -59,10 +59,8 @@ class Interactive(object):
             print('')
             self.get_overlay_components()
             ovl = Overlay.Overlay(config=self.config, ovl_dict=self.overlay, ignore=1)
-            repo.append(ovl.to_xml())
+            self.overlays.append((self.overlay['name'], ovl))
 
-        indent(repo)
-        self.tree = ET.ElementTree(repo)
         self.write()
 
 
@@ -236,6 +234,39 @@ class Interactive(object):
                                 % ({'comp': component}))
 
 
+    def read(self, path):
+        '''
+        Reads overlay.xml files and appends the contents
+        to be sorted when writing to the file.
+
+        @params path: path to file to be read
+        '''
+        try:
+            document = ET.parse(path)
+        except xml.etree.ElementTree.ParseError as error:
+            msg = 'Interactive.read(); encountered error: %(error)s'\
+                % ({'error': error})
+            print(msg)
+
+        overlays = document.findall('overlay') + document.findall('repo')
+
+        for overlay in overlays:
+            ovl_name = overlay.find('name')
+            ovl = Overlay.Overlay(config=self.config, xml=overlay, ignore=1)
+            self.overlays.append((ovl_name.text, ovl))
+
+
+    def _sort_to_tree(self):
+        '''
+        Sorts all Overlay objects by overlay name
+        and converts the sorted overlay objects to
+        XML that is then appended to the tree.
+        '''
+        self.overlays = sorted(self.overlays)
+        for overlay in self.overlays:
+            self.tree.append(overlay[1].to_xml())
+
+
     def write(self):
         '''
         Writes overlay file to desired location.
@@ -250,6 +281,16 @@ class Interactive(object):
             filepath += "/"
 
         destination = filepath + filename
+
+        self.tree = ET.Element('repositories', version='1.0', encoding=_UNICODE)
+
+        if os.path.isfile(destination):
+            self.read(destination)
+
+        self._sort_to_tree()
+        indent(self.tree)
+        self.tree = ET.ElementTree(self.tree)
+
         try:
             with fileopen(destination, 'w') as xml:
                 self.tree.write(xml, encoding=_UNICODE)
