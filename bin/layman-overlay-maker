@@ -22,7 +22,7 @@ __version__ = "0.1"
 #
 #-------------------------------------------------------------------------------
 
-from layman.overlays.maker import Main
+from layman.maker import Interactive
 
 import sys
 
@@ -32,7 +32,7 @@ import sys
 #
 #-------------------------------------------------------------------------------
 
-main = Main()
+main = Interactive()
 try:
     main()
 except KeyboardInterrupt:

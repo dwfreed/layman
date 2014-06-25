@@ -35,7 +35,7 @@ if sys.hexversion >= 0x30200f0:
 else:
     _UNICODE = 'UTF-8'
 
-class Main(object):
+class Interactive(object):
 
     def __init__(self):
         self.config = BareConfig()
