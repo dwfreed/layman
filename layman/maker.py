@@ -197,7 +197,8 @@ class Interactive(object):
         being created.
         '''
         ovl_type = None
-        source_amount = int(self.get_input('How many sources exist for this overlay?: '))
+        source_amount = int(self.get_input('How many different sources,'\
+                ' protocols, or mirrors exist for this overlay?: '))
 
         self.overlay['sources'] = []
 
