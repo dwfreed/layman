@@ -207,11 +207,16 @@ class Interactive(object):
             if source_amount > 1:
                 sources.append(self.get_input('Define source[%(i)s] URL: '\
                     % ({'i': str(i)})))
+
                 ovl_type = self.guess_overlay_type(sources[0])
-                while not ovl_type:
+                correct = self.get_ans('Is %(type)s the correct overlay'\
+                                ' type?: ' % ({'type': ovl_type}))
+                while not ovl_type or not correct:
                     ovl_type = self.check_overlay_type(\
-                                    self.get_input('Unable to determine overlay type.\n'\
-                                                   'Please provide overlay type: '))
+                                self.get_input('Please provide overlay'\
+                                ' type: '))
+                    correct = True
+
                 sources.append(ovl_type)
                 if 'branch' in self.required:
                     sources.append(self.get_input('Define source[%(i)s]\'s '\
@@ -220,11 +225,16 @@ class Interactive(object):
                     sources.append('')
             else:
                 sources.append(self.get_input('Define source URL: '))
+
                 ovl_type = self.guess_overlay_type(sources[0])
-                while not ovl_type:
+                correct = self.get_ans('Is %(type)s the correct overlay'\
+                                ' type?: ' % ({'type': ovl_type}))
+                while not ovl_type or not correct:
                     ovl_type = self.check_overlay_type(\
-                                    self.get_input('Unable to determine overlay.\n'\
-                                                   'Please provide overlay type: '))
+                                   self.get_input('Please provide overlay'\
+                                   ' type: '))
+                    correct = True
+
                 sources.append(ovl_type)
                 if 'branch' in self.required:
                     sources.append(self.get_input('Define source branch (if applicable): '))
