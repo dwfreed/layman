@@ -29,8 +29,8 @@ import sys
 from   layman.api            import LaymanAPI
 from   layman.compatibility  import fileopen
 from   layman.constants      import COMPONENT_DEFAULTS, POSSIBLE_COMPONENTS
-from   layman.config         import BareConfig
-from   layman.utils          import indent
+from   layman.config         import OptionConfig
+from   layman.utils          import indent, reload_config
 
 #py3
 if sys.hexversion >= 0x30200f0:
@@ -41,7 +41,8 @@ else:
 class Interactive(object):
 
     def __init__(self):
-        self.config = BareConfig()
+        self.config = OptionConfig()
+        reload_config(self.config)
         self.layman_inst = LaymanAPI(config=self.config)
         self.overlay = {}
         self.overlays = []
