@@ -48,7 +48,7 @@ class Interactive(object):
         self.overlays_available = self.layman_inst.get_available()
         self.supported_types = self.layman_inst.supported_types().keys()
 
-    def __call__(self, overlay_package=None):
+    def __call__(self, overlay_package=None, path=None):
 
         if not overlay_package:
             for x in range(1, int(self.get_input("How many overlays would you like to create?: "))+1):
@@ -63,8 +63,10 @@ class Interactive(object):
                 self.overlays.append((self.overlay['name'], ovl))
         else:
             ovl_name, ovl = overlay_package
-            self.overlays.append(ovl_name, ovl)
-        self.write()
+            self.overlays.append((ovl_name, ovl))
+
+        result = self.write(path)
+        return result
 
 
     def get_input(self, msg):
@@ -318,20 +320,24 @@ class Interactive(object):
             self.tree.append(overlay[1].to_xml())
 
 
-    def write(self):
+    def write(self, destination):
         '''
         Writes overlay file to desired location.
+        
+        @params destination: path & file to write xml to.
+        @rtype bool: reflects success or failure to write xml.
         '''
-        filename = self.get_input('Desired overlay file name: ')
-        filepath = self.get_input('Desired output path: ')
+        if not destination:
+            filename = self.get_input('Desired overlay file name: ')
+            filepath = self.get_input('Desired output path: ')
 
-        if not filename.endswith('.xml'):
-            filename += ".xml"
+            if not filename.endswith('.xml'):
+                filename += ".xml"
 
-        if not filepath.endswith('/'):
-            filepath += "/"
+            if not filepath.endswith('/'):
+                filepath += "/"
 
-        destination = filepath + filename
+            destination = filepath + filename
 
         self.tree = ET.Element('repositories', version='1.0', encoding=_UNICODE)
 
@@ -345,7 +351,9 @@ class Interactive(object):
         try:
             with fileopen(destination, 'w') as xml:
                 self.tree.write(xml, encoding=_UNICODE)
+            return True
 
         except IOError as e:
             print("Writing XML failed: %(error)s" % ({'error': e}))
 
+        return False
