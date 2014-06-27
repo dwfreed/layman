@@ -509,7 +509,7 @@ class Interactive(object):
         '''
         if not destination:
             filename = self.get_input('Desired overlay file name: ')
-            filepath = self.get_input('Desired output path: ')
+            filepath = self.config.get_option('overlay_defs')
 
             if not filename.endswith('.xml'):
                 filename += ".xml"
