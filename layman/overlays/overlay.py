@@ -335,7 +335,7 @@ class Overlay(object):
         else:
             self.homepage = None
 
-        if 'feed' in overlay:
+        if 'feeds' in overlay:
             self.feeds = [encode(e) \
                 for e in overlay['feeds']]
         else:

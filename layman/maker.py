@@ -164,7 +164,7 @@ class Interactive(object):
             if possible not in self.required:
                 msg = 'Include %(comp)s for this overlay? [y/n]: '\
                         % ({'comp': possible})
-                if ((possible in 'homepage' or possible in 'feed') and
+                if ((possible in 'homepage' or possible in 'feeds') and
                    self.info_available):
                     available = False
                 else:

@@ -65,4 +65,4 @@ SUCCEED = 0
 
 COMPONENT_DEFAULTS  = ['name', 'description', 'owner', 'type', 'sources']
 POSSIBLE_COMPONENTS = ['name', 'description', 'homepage', 'owner', 'quality',
-                       'priority', 'sources', 'branch', 'irc', 'feed']
+                       'priority', 'sources', 'branch', 'irc', 'feeds']
