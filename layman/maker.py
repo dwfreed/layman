@@ -24,6 +24,7 @@ import xml.etree.ElementTree   as ET
 
 import copy
 import os
+import re
 import sys
 
 from   layman.api            import LaymanAPI
@@ -53,10 +54,15 @@ class Interactive(object):
 
         if not overlay_package:
             for x in range(1, int(self.get_input("How many overlays would you like to create?: "))+1):
+                self.info_available = False
                 print('')
                 print('Overlay #%(x)s: ' % ({'x': str(x)}))
                 print('~~~~~~~~~~~~~')
 
+                self.info_available = self.get_ans('Is the mirror for this '\
+                    'overlay either github.com or\ngit.overlays.gentoo.org?'\
+                    ' [y/n]: ')
+                print('')
                 self.update_required()
                 print('')
                 self.get_overlay_components()
@@ -156,8 +162,13 @@ class Interactive(object):
 
         for possible in POSSIBLE_COMPONENTS:
             if possible not in self.required:
-                available = self.get_ans("Include %(comp)s for this overlay? [y/n]: " \
-                    % ({'comp': possible}))
+                msg = 'Include %(comp)s for this overlay? [y/n]: '\
+                        % ({'comp': possible})
+                if ((possible in 'homepage' or possible in 'feed') and
+                   self.info_available):
+                    available = False
+                else:
+                    available = self.get_ans(msg)
                 if available:
                     self.required.append(possible)
 
@@ -203,8 +214,12 @@ class Interactive(object):
         being created.
         '''
         ovl_type = None
-        source_amount = int(self.get_input('How many different sources,'\
-                ' protocols, or mirrors exist for this overlay?: '))
+
+        if self.info_available:
+            source_amount = 1
+        else:
+            source_amount = int(self.get_input('How many different sources,'\
+                    ' protocols, or mirrors exist for this overlay?: '))
 
         self.overlay['sources'] = []
 
@@ -246,7 +261,10 @@ class Interactive(object):
                     sources.append(self.get_input('Define source branch (if applicable): '))
                 else:
                     sources.append('')
-
+                if self.info_available:
+                    sources1, sources2, sources3 = self._set_additional_info(sources)
+                    self.overlay['sources'].append(sources2)
+                    self.overlay['sources'].append(sources3)
             self.overlay['sources'].append(sources)
         print('')
 
@@ -308,6 +326,167 @@ class Interactive(object):
             ovl_name = overlay.find('name')
             ovl = Overlay.Overlay(config=self.config, xml=overlay, ignore=1)
             self.overlays.append((ovl_name.text, ovl))
+
+
+    def _set_additional_info(self, source):
+        '''
+        Sets additional overlay source info
+        based on the URL.
+        '''
+        sources = self._set_overlay_info(source)
+        return sources
+
+
+    def _set_overlay_info(self, source):
+        '''
+        Sets additional possible source URLs for both github
+        and git.overlays.gentoo.org source URLs.
+
+        @params source: list of the source URL, type, and branch.
+        '''
+        ssh_type, url = self._split_source_url(source[0])
+
+        if 'github.com' in url[2]:
+            github_source = True
+        else:
+            github_source = False
+
+        if not ssh_type:
+            source2_url = url
+            # Make the second source URL the ssh URL.
+            if 'git:' not in url[:1]:
+               source2_url.remove(source2_url[0])
+               source2_url.insert(0, 'git:')
+
+            if github_source:
+                source2_url = '/'.join(source2_url)
+                source2_url = source2_url.replace('://', '@')
+                source2_url = source2_url.replace('.com/', '.com:')
+                source2 = [source2_url, source[1], source[2]]
+            else:
+                source2_url = '/'.join(source2_url)
+                source2_url = source2_url.replace('git://', 'git+ssh://')
+                source2_url = source2_url.replace('git.overlays', 'git@git.overlays')
+                source2 = [source2_url, source[1], source[2]]
+
+            # Check to see the next source URL
+            # that needs to be created from the
+            # URL given.
+            if 'git:' in url[:1]:
+                next_header = 'https:'
+            else:
+                next_header = 'git:'
+        else:
+            # Joining a split ssh URL by '/' turns it into
+            # a normal git:// source URL regardless of whether
+            # it is github or g.o.g.o.
+            source2 = ['/'.join(url), source[1], source[2]]
+            next_header = 'https:'
+
+        source3_url = url
+        source3_url.remove(source3_url[0])
+        source3_url.insert(0, next_header)
+
+        if next_header in 'https:' and 'git.overlays.gentoo.org' in url[2]:
+            source3_url.insert(3, 'gitroot')
+
+        source3 = ['/'.join(source3_url), source[1], source[2]]
+
+        info_url = url
+        info_url.remove(info_url[0])
+        info_url.insert(0, 'https:')
+
+        if github_source:
+            p = info_url[4].replace('.git', '')
+
+            home_url = info_url
+            atom_url = info_url
+
+            home_tail = p
+            atom_tail = p + '/commits/'
+
+            if source[2]:
+                home_tail = p + '/tree/' + source[2]
+                atom_tail += source[2] + '.atom'
+            else:
+                atom_tail += 'master.atom'
+
+            home_url.remove(info_url[4])
+            home_url.insert(4, home_tail)
+
+            atom_url.remove(info_url[4])
+            atom_url.insert(4, atom_tail)
+
+            self.overlay['homepage'] = '/'.join(home_url)
+            self.overlay['feeds'] = ['/'.join(atom_url)]
+        else:
+            if 'gitroot' in info_url:
+                info_url.remove('gitroot')
+            info_url.insert(3, 'gitweb')
+
+            p = '?p='
+            p += info_url[4]
+            info_url.remove(info_url[4])
+            info_url.insert(4, p)
+
+            home_url = info_url
+            atom_url = info_url
+            rss_url = info_url
+
+            home_tail = info_url[5]
+            atom_tail = info_url[5]
+            rss_tail = info_url[5]
+
+            if source[2]:
+                home_tail += ';a=shortlog;h=refs/heads/' + source[2]
+                atom_tail += ';a=atom;h=refs/heads/' + source[2]
+                rss_tail += ';a=rss;h=refs/heads/' + source[2]
+            else:
+                home_tail += ';a=summary'
+                atom_tail += ';a=atom'
+                rss_tail += ';a=rss'
+
+            home_url.remove(info_url[5])
+            home_url.insert(5, home_tail)
+
+            atom_url.remove(info_url[5])
+            atom_url.insert(5, atom_tail)
+
+            rss_url.remove(info_url[5])
+            rss_url.insert(5, rss_tail)
+
+            self.overlay['homepage'] = '/'.join(home_url)
+            self.overlay['feeds'] = ['/'.join(atom_url), '/'.join(rss_url)]
+
+        return source, source2, source3
+
+
+    def _split_source_url(self, source_url):
+        '''
+        Splits the given source URL based on
+        the source URL type.
+
+        @params source_url: str, represents the URL for the repo.
+        @rtype tuple: indication on whether or not the source was
+        a ssh type URL, or not and the newly split url components.
+        '''
+        ssh_source = True
+
+        if re.search("^(git://)|(http://)", source_url):
+            source_url = source_url.split('/')
+            ssh_source = False
+            return (ssh_source, source_url)
+        if re.search('^git\+ssh://', source_url):
+            source_url = source_url.replace('+ssh', '')
+            source_url = source_url.replace('git@', '').split('/')
+            return (ssh_source, source_url)
+        if re.search('^git@', source_url):
+            source_url = source_url.replace('@', '//')
+            source_url = source_url.replace(':', '/')
+            source_url = source_url.replace('//', '://').split('/')
+            return (ssh_source, source_url)
+
+        print('Interactive._split_source_url(); error: Unable to split URL.')
 
 
     def _sort_to_tree(self):
