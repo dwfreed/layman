@@ -45,6 +45,7 @@ from   layman.overlays.g_common  import GCommonOverlay
 from   layman.overlays.g_sorcery import GSorceryOverlay
 from   layman.overlays.mercurial import MercurialOverlay
 from   layman.overlays.cvs       import CvsOverlay
+from   layman.overlays.squashfs  import SquashfsOverlay
 from   layman.overlays.svn       import SvnOverlay
 from   layman.overlays.rsync     import RsyncOverlay
 from   layman.overlays.tar       import TarOverlay
@@ -60,8 +61,9 @@ OVERLAY_TYPES = dict((e.type_key, e) for e in (
     GCommonOverlay,
     GSorceryOverlay,
     CvsOverlay,
-    SvnOverlay,
     RsyncOverlay,
+    SquashfsOverlay,
+    SvnOverlay,
     TarOverlay,
     BzrOverlay,
     MercurialOverlay,
