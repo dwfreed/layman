@@ -99,7 +99,7 @@ class TarOverlay(OverlaySource):
 
     def _extract(self, base, tar_url, dest_dir):
         ext = '.tar.noidea'
-        clean_tar = self.config['clean_tar']
+        clean_tar = self.config['clean_archive']
         for i in [('tar.%s' % e) for e in ('bz2', 'gz', 'lzma', 'xz', 'Z')] \
                 + ['tgz', 'tbz', 'taz', 'tlz', 'txz']:
             candidate_ext = '.%s' % i

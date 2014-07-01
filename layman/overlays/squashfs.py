@@ -46,15 +46,15 @@ USERAGENT = "Layman" + VERSION
 #
 #-------------------------------------------------------------------------------
 
-class TarOverlay(OverlaySource):
-    ''' Handles tar overlays.'''
+class SquashfsOverlay(OverlaySource):
+    ''' Handles squashfs overlays.'''
 
     type = 'Squashfs'
     type_key = 'squashfs'
 
     def __init__(self, parent, config, _location, ignore = 0):
 
-        super(TarOverlay, self).__init__(parent,
+        super(SquashfsOverlay, self).__init__(parent,
             config, _location, ignore)
 
         self.output = config['output']
@@ -153,7 +153,12 @@ class TarOverlay(OverlaySource):
         return result
 
     def add(self, base):
-        '''Add overlay.'''
+        '''
+        Add overlay.
+
+        @params base: string location where overlays are installed.
+        @rtype boolean
+        '''
 
         if not self.supported():
             return 1
@@ -169,7 +174,12 @@ class TarOverlay(OverlaySource):
             cwd=target)
 
     def sync(self, base):
-        '''Sync overlay.'''
+        '''
+        Sync overlay.
+
+        @params base: string location where overlays are installed
+        @rtype boolean
+        '''
 
         if not self.supported():
             return 1
@@ -181,10 +191,14 @@ class TarOverlay(OverlaySource):
             cwd=target)
 
     def supported(self):
-        '''Overlay type supported?'''
+        '''
+        Overlay type supported?
+
+        @rtype boolean
+        '''
 
         return require_supported(
-            [(self.command(),  'tar', 'app-arch/tar'), ],
+            [(self.command(),  'squashfs', 'sys-fs/squashfs-tools'), ],
             self.output.warn)
 
 if __name__ == '__main__':
