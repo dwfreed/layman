@@ -130,14 +130,6 @@ class Overlay(object):
             raise Exception('Overlay from_xml(), "' + self.name + \
                 'is missing a "name" entry!')
 
-        _branch = xml.find('branch')
-        if _branch != None and _branch.text:
-            self.branch = encode(_branch.text.strip())
-        elif 'branch' in xml.attrib:
-            self.branch = encode(xml.attrib['branch'])
-        else:
-            self.branch = ''
-
         _sources = xml.findall('source')
         # new xml format
         if _sources != []:
@@ -154,7 +146,7 @@ class Overlay(object):
             _type = source_elem.attrib['type']
             if 'branch' in source_elem.attrib:
                 _branch = source_elem.attrib['branch']
-                
+
             try:
                 _class = OVERLAY_TYPES[_type]
             except KeyError:
@@ -346,10 +338,6 @@ class Overlay(object):
         else:
             self.irc = None
 
-        if 'branch' in overlay:
-            self.branch = encode(overlay['branch'])
-        else:
-            self.branch = None
         #xml = self.to_xml()
         # end of from_dict
 
@@ -393,10 +381,6 @@ class Overlay(object):
             homepage = ET.Element('homepage')
             homepage.text = self.homepage
             repo.append(homepage)
-        if self.branch != None:
-            branch = ET.Element('branch')
-            branch.text = self.branch
-            repo.append(branch)
         if self.irc != None:
             irc = ET.Element('irc')
             irc.text = self.irc
@@ -411,7 +395,10 @@ class Overlay(object):
             owner_name.text = self.owner_name
             owner.append(owner_name)
         for i in self.sources:
-            source = ET.Element('source', type=i.__class__.type_key)
+            if not i.branch:
+                source = ET.Element('source', type=i.__class__.type_key)
+            else:
+                source = ET.Element('source', type=i.__class__.type_key, branch=i.branch)
             source.text = i.src
             repo.append(source)
             del source
