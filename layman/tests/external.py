@@ -77,65 +77,107 @@ class FormatBranchCategory(unittest.TestCase):
         self.assertTrue(os1 == os2)
 
 
+# Tests archive overlay types (squashfs, tar)
 # http://bugs.gentoo.org/show_bug.cgi?id=304547
-class TarAddRemoveSync(unittest.TestCase):
-    def test(self):
+class ArchiveAddRemoveSync(unittest.TestCase):
+
+    def _create_squashfs_overlay(self):
+        repo_name = 'squashfs-test-overlay'
+        squashfs_source_path = os.path.join(HERE, 'testfiles', 'layman-test.squashfs')
+
+        # Duplicate test squashfs (so we can delete it after testing)
+        (_, temp_squashfs_path) = tempfile.mkstemp()
+        shutil.copyfile(squashfs_source_path, temp_squashfs_path)
+
+        # Write overlay collection XML
+        xml_text = \
+        '<?xml version="1.0" encoding="UTF-8"?>'\
+        '<repositories xmlns="" version="1.0">'\
+        '  <repo quality="experimental" status="unofficial">'\
+            '<name>%(repo_name)s</name>'\
+            '<description>XXXXXXXXXXX</description>'\
+            '<owner>'\
+              '<email>foo@example.org</email>'\
+            '</owner>'\
+            '<source type="squashfs">file://%(temp_squashfs_url)s</source>'\
+          '</repo>'\
+        '</repositories>'\
+        % { 
+            'temp_squashfs_url': urllib.pathname2url(temp_squashfs_path),
+            'repo_name': repo_name
+          }
+
+        return xml_text, repo_name, temp_squashfs_path
+
+
+    def _create_tar_overlay(self):
         repo_name = 'tar-test-overlay'
         tar_source_path = os.path.join(HERE, 'testfiles', 'layman-test.tar.bz2')
 
-        # Duplicate test tarball (so we have it deletable for later)
+        # Duplicate test tarball (so we can delete it after testing)
         (_, temp_tarball_path) = tempfile.mkstemp()
         shutil.copyfile(tar_source_path, temp_tarball_path)
 
         # Write overlay collection XML
-        xml_text = """\
-<?xml version="1.0" encoding="UTF-8"?>
-<repositories xmlns="" version="1.0">
-  <repo quality="experimental" status="unofficial">
-    <name>%(repo_name)s</name>
-    <description>XXXXXXXXXXX</description>
-    <owner>
-      <email>foo@exmaple.org</email>
-    </owner>
-    <source type="tar">file://%(temp_tarball_url)s</source>
-  </repo>
-</repositories>
-""" % {     'temp_tarball_url':urllib.pathname2url(temp_tarball_path),
-            'repo_name':repo_name}
-        (fd, temp_collection_path) = tempfile.mkstemp()
-        with os.fdopen(fd, 'w') as f:
-            f.write(xml_text)
+        xml_text = \
+        '<?xml version="1.0" encoding="UTF-8"?>'\
+        '<repositories xmlns="" version="1.0">'\
+          '<repo quality="experimental" status="unofficial">'\
+            '<name>%(repo_name)s</name>'\
+            '<description>XXXXXXXXXXX</description>'\
+            '<owner>'\
+              '<email>foo@example.org</email>'\
+            '</owner>'\
+            '<source type="tar">file://%(temp_tarball_url)s</source>'\
+          '</repo>'\
+        '</repositories>'\
+        % {
+            'temp_tarball_url': urllib.pathname2url(temp_tarball_path),
+            'repo_name': repo_name
+          }
 
-        # Make playground directory
-        temp_dir_path = tempfile.mkdtemp()
+        return xml_text, repo_name, temp_tarball_path
 
-        # Make DB from it
-        #config = {'output': Message(), 'tar_command':'/bin/tar'}
-        config = BareConfig()
-        db = DbBase(config, [temp_collection_path])
 
-        specific_overlay_path = os.path.join(temp_dir_path, repo_name)
-        o = db.select('tar-test-overlay')
+    def test(self):
+        for i in ('squashfs', 'tar'):
+            xml_text, repo_name, temp_archive_path  = getattr(self,
+                                                "_create_%(archive)s_overlay" %
+                                                {'archive': i})()
 
-        # Actual testcase
-        o.add(temp_dir_path)
-        self.assertTrue(os.path.exists(specific_overlay_path))
-        # (1/2) Sync with source available
-        o.sync(temp_dir_path)
-        self.assertTrue(os.path.exists(specific_overlay_path))
-        os.unlink(temp_tarball_path)
-        try:
-            # (2/2) Sync with source _not_ available
+            (fd, temp_collection_path) = tempfile.mkstemp()
+            with os.fdopen(fd, 'w') as f:
+                f.write(xml_text)
+
+            # Make playground directory
+            temp_dir_path = tempfile.mkdtemp()
+
+            # Make DB from it
+            config = BareConfig()
+            db = DbBase(config, [temp_collection_path])
+
+            specific_overlay_path = os.path.join(temp_dir_path, repo_name)
+            o = db.select(repo_name)
+
+            # Actual testcase
+            o.add(temp_dir_path)
+            self.assertTrue(os.path.exists(specific_overlay_path))
+            # (1/2) Sync with source available
             o.sync(temp_dir_path)
-        except:
-            pass
-        self.assertTrue(os.path.exists(specific_overlay_path))
-        o.delete(temp_dir_path)
-        self.assertFalse(os.path.exists(specific_overlay_path))
+            self.assertTrue(os.path.exists(specific_overlay_path))
+            os.unlink(temp_archive_path)
+            try:
+                # (2/2) Sync with source _not_ available
+                o.sync(temp_dir_path)
+            except:
+                pass
+            self.assertTrue(os.path.exists(specific_overlay_path))
+            o.delete(temp_dir_path)
+            self.assertFalse(os.path.exists(specific_overlay_path))
 
-        # Cleanup
-        os.unlink(temp_collection_path)
-        os.rmdir(temp_dir_path)
+            # Cleanup
+            os.unlink(temp_collection_path)
+            os.rmdir(temp_dir_path)
 
 
 if __name__ == '__main__':
