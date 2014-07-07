@@ -29,7 +29,7 @@ __version__ = "$Id: db.py 309 2007-04-09 16:23:38Z wrobel $"
 
 import os, os.path
 
-from   layman.utils             import path, delete_empty_directory
+from   layman.utils             import path, delete_empty_directory, get_ans
 from   layman.dbbase            import DbBase
 from   layman.repoconfmanager   import RepoConfManager
 
@@ -127,7 +127,23 @@ class DB(DbBase):
         '''
 
         if overlay.name not in self.overlays.keys():
-            result = overlay.add(self.config['storage'])
+            if self.config['check_official'] and not overlay.status == 'official':
+                msg = 'Overlay %(repo)s is not an official overlay.'\
+                      'Continue install? [y/n]: ' % ({'repo': overlay.name})
+                if not get_ans(msg, color='yellow'):
+                    msg = 'layman will not add "%(repo)s, due to user\'s'\
+                          ' decision\nto not install unofficial overlays.'\
+                          % ({'repo': overlay.name})
+                    hint = 'Hint: To remove this check, set "check_official"'\
+                           ' to "No"\nin your layman.cfg'
+                    self.output.info(msg)
+                    self.output.notice('')
+                    self.output.info(hint)
+                    return False
+                else:
+                    result = overlay.add(self.config['storage'])
+            else:
+                result = overlay.add(self.config['storage'])
             if result == 0:
                 if 'priority' in self.config.keys():
                     overlay.set_priority(self.config['priority'])
