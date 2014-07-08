@@ -81,7 +81,7 @@ class ArgsParser(BareConfig):
             usage   = _USAGE)
 
         self.parser.add_argument('-H',
-                        '--setup_help',
+                        '--setup-help',
                         action = 'store_true',
                         help = 'Print the NEW INSTALL help messages.')
 
