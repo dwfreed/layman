@@ -546,6 +546,7 @@ class Interactive(object):
         try:
             with fileopen(destination, 'w') as xml:
                 self.tree.write(xml, encoding=_UNICODE)
+            print('Successfully wrote to: %(path)s' % ({'path': destination}))
             return True
 
         except IOError as e:
