@@ -51,13 +51,14 @@ class RepoConfManager:
         @return boolean: represents success or failure.
         '''
         if self.config['require_repoconfig']:
+            results = []
             for types in self.conf_types:
                 conf = getattr(self.modules[types][0],
                     self.modules[types][1])(self.config, self.overlays)
                 conf_ok = conf.add(overlay)
-            return conf_ok
-        return True
-
+                results.append(conf_ok)
+            return results
+        return [True]
 
     def delete(self, overlay):
         '''
@@ -67,12 +68,14 @@ class RepoConfManager:
         @return boolean: represents success or failure.
         '''
         if self.config['require_repoconfig']:
+            results = []
             for types in self.conf_types:
                 conf = getattr(self.modules[types][0],
                     self.modules[types][1])(self.config, self.overlays)
                 conf_ok = conf.delete(overlay)
-            return conf_ok
-        return True
+                results.append(conf_ok)
+            return results
+        return [True]
 
 
     def disable(self, overlay):
@@ -84,12 +87,14 @@ class RepoConfManager:
         @return boolean: represents success or failure.
         '''
         if self.config['require_repoconfig']:
+            results = []
             for types in self.conf_types:
                 conf = getattr(self.modules[types][0],
                     self.modules[types][1])(self.config, self.overlays)
                 conf_ok = conf.disable(overlay)
-            return conf_ok
-        return True
+                results.append(conf_ok)
+            return results
+        return [True]
                                                                                                                                                 
 
     def enable(self, overlay):
@@ -101,14 +106,15 @@ class RepoConfManager:
         @return boolean: represents success or failure.
         '''
         if self.config['require_repoconfig']:
+            results = []
             for types in self.conf_types:
                 conf = getattr(self.modules[types][0],
                     self.modules[types][1])(self.config, self.overlays)
                 conf_ok = conf.enable(overlay)
-            return conf_ok
-        return True
+                results.append(conf_ok)
+            return results
+        return [True]
 
-    
     def update(self, overlay):
         '''
         Updates the source URL for the specified config type(s).
@@ -117,9 +123,11 @@ class RepoConfManager:
         @return boolean: represents success or failure.
         '''
         if self.config['require_repoconfig']:
+            results = []
             for types in self.conf_types:
                 conf = getattr(self.modules[types][0],
                     self.modules[types][1])(self.config, self.overlays)
                 conf_ok = conf.update(overlay)
-            return conf_ok
-        return True
+                results.append(conf_ok)
+            return results
+        return [True]
