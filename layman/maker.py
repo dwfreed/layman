@@ -487,7 +487,7 @@ class Interactive(object):
         '''
         ssh_source = True
 
-        if re.search("^(git://)|(http://)", source_url):
+        if re.search("^(git://)|(http://)|(https://)", source_url):
             source_url = source_url.split('/')
             ssh_source = False
             return (ssh_source, source_url)
