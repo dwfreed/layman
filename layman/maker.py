@@ -276,11 +276,12 @@ class Interactive(object):
                     sources.append(self.get_input('Define source branch (if applicable): '))
                 else:
                     sources.append('')
-                if self.info_available:
-                    sources1, sources2, sources3 = self._set_additional_info(sources)
-                    self.overlay['sources'].append(sources2)
-                    self.overlay['sources'].append(sources3)
-            self.overlay['sources'].append(sources)
+            if self.info_available:
+                sources = self._set_additional_info(sources)
+                for source in sources:
+                    self.overlay['sources'].append(source)
+            else:
+                self.overlay['sources'].append(sources)
         print('')
 
 
@@ -473,7 +474,8 @@ class Interactive(object):
             self.overlay['homepage'] = '/'.join(home_url)
             self.overlay['feeds'] = ['/'.join(atom_url), '/'.join(rss_url)]
 
-        return source, source2, source3
+        sources = [source, source2, source3]
+        return sources
 
 
     def _split_source_url(self, source_url):
