@@ -353,49 +353,35 @@ class Interactive(object):
         return sources
 
 
-    def _set_overlay_info(self, source):
+    def _set_gentoo_info(self, source):
         '''
-        Sets additional possible source URLs for both github
-        and git.overlays.gentoo.org source URLs.
+        Sets overlay info such as extra source URLs, homepage, and
+        source feed information for git.overlays.gentoo.org mirrors.
 
         @params source: list of the source URL, type, and branch.
         '''
         ssh_type, url = self._split_source_url(source[0])
 
-        if 'github.com' in url[2]:
-            github_source = True
-        else:
-            github_source = False
-
         if not ssh_type:
             source2_url = url
             # Make the second source URL the ssh URL.
             if 'git:' not in url[:1]:
-               source2_url.remove(source2_url[0])
-               source2_url.insert(0, 'git:')
+                source2_url.remove(source2_url[0])
+                source2_url.insert(0, 'git:')
 
-            if github_source:
-                source2_url = '/'.join(source2_url)
-                source2_url = source2_url.replace('://', '@')
-                source2_url = source2_url.replace('.com/', '.com:')
-                source2 = [source2_url, source[1], source[2]]
-            else:
-                source2_url = '/'.join(source2_url)
-                source2_url = source2_url.replace('git://', 'git+ssh://')
-                source2_url = source2_url.replace('git.overlays', 'git@git.overlays')
-                source2 = [source2_url, source[1], source[2]]
+            source2_url = '/'.join(source2_url)
+            source2_url = source2_url.replace('git://', 'git+ssh://')
+            source2_url = source2_url.replace('git.overlays', 'git@git.overlays')
+            source2 = [source2_url, source[1], source[2]]
 
-            # Check to see the next source URL
-            # that needs to be created from the
-            # URL given.
             if 'git:' in url[:1]:
                 next_header = 'https:'
             else:
                 next_header = 'git:'
         else:
             # Joining a split ssh URL by '/' turns it into
-            # a normal git:// source URL regardless of whether
-            # it is github or g.o.g.o.
+            # a normal git:// source URL regardless of the
+            # mirror being github, or g.o.g.o.
             source2 = ['/'.join(url), source[1], source[2]]
             next_header = 'https:'
 
@@ -403,7 +389,7 @@ class Interactive(object):
         source3_url.remove(source3_url[0])
         source3_url.insert(0, next_header)
 
-        if next_header in 'https:' and 'git.overlays.gentoo.org' in url[2]:
+        if next_header in 'https:':
             source3_url.insert(3, 'gitroot')
 
         source3 = ['/'.join(source3_url), source[1], source[2]]
@@ -412,69 +398,133 @@ class Interactive(object):
         info_url.remove(info_url[0])
         info_url.insert(0, 'https:')
 
-        if github_source:
-            p = info_url[4].replace('.git', '')
+        if 'gitroot' in info_url:
+            info_url.remove('gitroot')
+        info_url.insert(3, 'gitweb')
 
-            home_url = info_url
-            atom_url = info_url
+        p = '?p='
+        p += info_url[4]
+        info_url.remove(info_url[4])
+        info_url.insert(4, p)
 
-            home_tail = p
-            atom_tail = p + '/commits/'
+        home_url = info_url
+        atom_url = info_url
+        rss_url = info_url
 
-            if source[2]:
-                home_tail = p + '/tree/' + source[2]
-                atom_tail += source[2] + '.atom'
-            else:
-                atom_tail += 'master.atom'
+        home_tail = info_url[5]
+        atom_tail = info_url[5]
+        rss_tail = info_url[5]
 
-            home_url.remove(info_url[4])
-            home_url.insert(4, home_tail)
-
-            atom_url.remove(info_url[4])
-            atom_url.insert(4, atom_tail)
-
-            self.overlay['homepage'] = '/'.join(home_url)
-            self.overlay['feeds'] = ['/'.join(atom_url)]
+        if source[2]:
+            home_tail += ';a=shortlog;h=refs/heads/' + source[2]
+            atom_tail += ';a=atom;h=refs/heads/' + source[2]
+            rss_tail += ';a=rss;h=refs/heads/' + source[2]
         else:
-            if 'gitroot' in info_url:
-                info_url.remove('gitroot')
-            info_url.insert(3, 'gitweb')
+            home_tail += ';a=summary'
+            atom_tail += ';a=atom'
+            rss_tail += ';a=rss'
 
-            p = '?p='
-            p += info_url[4]
-            info_url.remove(info_url[4])
-            info_url.insert(4, p)
+        home_url.remove(info_url[5])
+        home_url.insert(5, home_tail)
 
-            home_url = info_url
-            atom_url = info_url
-            rss_url = info_url
+        atom_url.remove(info_url[5])
+        atom_url.insert(5, atom_tail)
 
-            home_tail = info_url[5]
-            atom_tail = info_url[5]
-            rss_tail = info_url[5]
+        rss_url.remove(info_url[5])
+        rss_url.insert(5, rss_tail)
 
-            if source[2]:
-                home_tail += ';a=shortlog;h=refs/heads/' + source[2]
-                atom_tail += ';a=atom;h=refs/heads/' + source[2]
-                rss_tail += ';a=rss;h=refs/heads/' + source[2]
+        self.overlay['homepage'] = '/'.join(home_url)
+        self.overlay['feeds'] = ['/'.join(atom_url), '/'.join(rss_url)]
+
+        return source2, source3
+
+
+    def _set_github_info(self, source):
+        '''
+        Sets overlay info such as extra source URLs, homepage, and
+        source feed information for github.com mirrors.
+
+        @params source: list of the source URL, type, and branch.
+        '''
+        ssh_type, url = self._split_source_url(source[0])
+
+        if not ssh_type:
+            source2_url = url
+            # Make the second source URL the ssh URL.
+            if 'git:' not in url[:1]:
+                source2_url.remove(source2_url[0])
+                source2_url.insert(0, 'git:')
+
+            source2_url = '/'.join(source2_url)
+            source2_url = source2_url.replace('://', '@')
+            source2_url = source2_url.replace('.com/', '.com:')
+            source2 = [source2_url, source[1], source[2]]
+
+            if 'git:' in url[:1]:
+                next_header = 'https:'
             else:
-                home_tail += ';a=summary'
-                atom_tail += ';a=atom'
-                rss_tail += ';a=rss'
+                next_header = 'git:'
+        else:
+            # Joining a split ssh URL by '/' turns it into
+            # a normal git:// source URL regardless of the
+            # mirror being github, or g.o.g.o.
+            source2 = ['/'.join(url), source[1], source[2]]
+            next_header = 'https:'
 
-            home_url.remove(info_url[5])
-            home_url.insert(5, home_tail)
+        source3_url = url
+        source3_url.remove(source3_url[0])
+        source3_url.insert(0, next_header)
+        source3 = ['/'.join(source3_url), source[1], source[2]]
 
-            atom_url.remove(info_url[5])
-            atom_url.insert(5, atom_tail)
+        info_url = url
+        info_url.remove(info_url[0])
+        info_url.insert(0, 'https:')
 
-            rss_url.remove(info_url[5])
-            rss_url.insert(5, rss_tail)
+        p = info_url[4].replace('.git', '')
 
-            self.overlay['homepage'] = '/'.join(home_url)
-            self.overlay['feeds'] = ['/'.join(atom_url), '/'.join(rss_url)]
+        home_url = info_url
+        atom_url = info_url
 
-        sources = [source, source2, source3]
+        home_tail = p
+        atom_tail = p + '/commits/'
+
+        if source[2]:
+            home_tail = p + '/tree/' + source[2]
+            atom_tail += source[2] + '.atom'
+        else:
+            atom_tail += 'master.atom'
+
+        home_url.remove(info_url[4])
+        home_url.insert(4, home_tail)
+
+        atom_url.remove(info_url[4])
+        atom_url.insert(4, atom_tail)
+
+        self.overlay['homepage'] = '/'.join(home_url)
+        self.overlay['feeds'] = ['/'.join(atom_url)]
+
+        return source2, source3
+
+
+    def _set_overlay_info(self, source):
+        '''
+        Sets additional possible overlay information.
+
+        @params source: list of the source URL, type, and branch.
+        '''
+        # If the source isn't support but the user said it
+        # was then just return the original source.
+        sources = [source]
+
+        if 'github.com' in source[0]:
+            additional_sources = self._set_github_info(source)
+            for source in additional_sources:
+                sources.append(source)
+        if 'git.overlays.gentoo.org' in source[0]:
+            addtional_sources = self._set_gentoo_info(source)
+            for source in addtional_sources:
+                sources.append(source)
+
         return sources
 
 
