@@ -60,8 +60,8 @@ class Interactive(object):
                 print('~~~~~~~~~~~~~')
 
                 self.info_available = self.get_ans('Is the mirror for this '\
-                    'overlay either github.com or\ngit.overlays.gentoo.org?'\
-                    ' [y/n]: ')
+                    'overlay either github.com,\ngit.overlays.gentoo.org, or'\
+                    'bitbucket.org? [y/n]: ')
                 print('')
                 self.update_required()
                 print('')
@@ -353,6 +353,40 @@ class Interactive(object):
         return sources
 
 
+    def _set_bitbucket_info(self, source, git=False):
+        '''
+        Sets overlay info such as extra source URLs, homepage, and
+        source feed information for bitbucket.org mirrors.
+
+        @params source: list of the source URL, type, and branch.
+        '''
+        if git:
+            home_url = source[0].replace('.git', '')
+            self.overlay['homepage'] = home_url
+
+            return None
+        ssh_type, url = self._split_source_url(source[0])
+        source2_url = '/'.join(url)
+
+        home_url = source2_url
+
+        if ssh_type:
+            home_url = home_url.replace('ssh:', 'https:')
+            home_url = home_url.replace('hg@bitbucket.org', 'bitbucket.org')
+            source2_url = home_url
+        else:
+            # Make the second source URL the ssh URL.
+            source2_url = source2_url.replace('https:', 'ssh:')
+            source2_url = source2_url.replace('bitbucket.org', 'hg@bitbucket.org')
+
+        source2 = [source2_url, source[1], source[2]]
+
+        self.overlay['homepage'] = home_url
+        self.overlay['feeds'] = [home_url+'/atom', home_url+'/rss']
+
+        return source2
+
+
     def _set_gentoo_info(self, source):
         '''
         Sets overlay info such as extra source URLs, homepage, and
@@ -524,6 +558,10 @@ class Interactive(object):
             addtional_sources = self._set_gentoo_info(source)
             for source in addtional_sources:
                 sources.append(source)
+        if 'bitbucket.org' in source[0]:
+            source2 = self._set_bitbucket_info(source, git='git' in source[1])
+            if 'git' in source[1]:
+                sources.append(source2)
 
         return sources
 
@@ -552,6 +590,8 @@ class Interactive(object):
             source_url = source_url.replace(':', '/')
             source_url = source_url.replace('//', '://').split('/')
             return (ssh_source, source_url)
+        if re.search('^ssh://', source_url):
+            return (ssh_source, source_url.split('/'))
 
         raise Exception('Interactive._split_source_url(); error: Unable '\
                         'to split URL.')
