@@ -45,6 +45,7 @@ class Interactive(object):
         self.config = OptionConfig()
         reload_config(self.config)
         self.layman_inst = LaymanAPI(config=self.config)
+        self.output = self.config.get_option('output')
         self.overlay = {}
         self.overlays = []
         self.overlays_available = self.layman_inst.get_available()
@@ -56,16 +57,17 @@ class Interactive(object):
             msg = 'How many overlays would you like to create?: '
             for x in range(1, int(self.get_input(msg))+1):
                 self.info_available = False
-                print('')
-                print('Overlay #%(x)s: ' % ({'x': str(x)}))
-                print('~~~~~~~~~~~~~')
+                self.output.notice('')
+                self.output.info('Overlay #%(x)s: ' % ({'x': str(x)}))
+                self.output.info('~~~~~~~~~~~~~')
 
-                msg = 'Is the mirror for this overlay either github.com, '\
-                      'git.overlays.gentoo.org, or bitbucket.org? [y/n]: '
+                msg = 'Is the mirror for this overlay either github.com,'
+                self.output.info(msg)
+                msg = 'git.overlays.gentoo.org, or bitbucket.org? [y/n]: '
                 self.info_available = self.get_ans(msg)
-                print('')
+                self.output.notice('')
                 self.update_required()
-                print('')
+                self.output.notice('')
                 self.get_overlay_components()
                 ovl = Overlay.Overlay(config=self.config, ovl_dict=self.overlay, ignore=1)
                 self.overlays.append((self.overlay['name'], ovl))
@@ -118,10 +120,10 @@ class Interactive(object):
         if ovl_type.lower() in self.supported_types:
             return ovl_type.lower()
         msg = '!!! Specified type "%(type)s" not valid.' % ({'type': ovl_type})
-        print(msg)
+        self.output.warn(msg)
         msg = 'Supported types include: %(types)s.'\
               % ({'types': ', '.join(self.supported_types)})
-        print(msg)
+        self.output.warn(msg)
         return None
 
 
@@ -208,7 +210,7 @@ class Interactive(object):
                 feeds.append(self.get_input('Define overlay feed: '))
 
         self.overlay['feeds'] = feeds
-        print('')
+        self.output.notice('')
 
 
     def get_name(self):
@@ -221,7 +223,7 @@ class Interactive(object):
         while name in self.overlays_available:
             msg = '!!! Overlay name already defined in list of installed'\
                   ' overlays.'
-            print(msg)
+            self.output.warn(msg)
             msg = 'Please specify a different overlay name: '
             name = self.get_input(msg)
 
@@ -293,7 +295,7 @@ class Interactive(object):
                     self.overlay['sources'].append(source)
             else:
                 self.overlay['sources'].append(sources)
-        print('')
+        self.output.notice('')
 
 
     def get_owner(self):
@@ -302,10 +304,10 @@ class Interactive(object):
         then appends the values to the overlay
         being created.
         '''
-        print('')
+        self.output.notice('')
         self.overlay['owner_name'] = self.get_input('Define owner name: ')
         self.overlay['owner_email'] = self.get_input('Define owner email: ')
-        print('')
+        self.output.notice('')
 
 
     def get_component(self, component, msg):
@@ -652,7 +654,7 @@ class Interactive(object):
                 self.tree.write(xml, encoding=_UNICODE)
             msg = 'Successfully wrote repo(s) to: %(path)s'\
                   % ({'path': destination})
-            print(msg)
+            self.output.info(msg)
             return True
 
         except IOError as e:
