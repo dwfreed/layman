@@ -124,6 +124,37 @@ class AddDeleteEnableDisableFromDB(unittest.TestCase):
         self.assertTrue(success)
 
 
+class CreateConfig(unittest.TestCase):
+
+    def make_BareConfig(self):
+        a = BareConfig()
+
+        # Test components of the BareConfig class:
+        assertTrue(a['overlay'])
+        assertTrue(sorted(a.keys()))
+        assertTrue(a.get_option('nocheck'))
+
+
+    def make_OptionConfig(self):
+        my_opts = {
+                   'overlays':
+                   ["http://www.gentoo-overlays.org/repositories.xml"]
+                  }
+        new_defaults = {'configdir': '/etc/test-dir'}
+
+        a = OptionConfig(options=my_opts, defaults=new_defaults)
+
+        # Test components of the OptionConfig class:
+        assertTrue(a['overlays'])
+        assertTrue(a['configdir'])
+        assertTrue(sorted(a.keys()))
+
+
+    def test(self):
+        for i in ['BareConfig', 'OptionConfig']:
+            getattr(self, 'make_%s' % i)
+
+
 class FetchRemoteList(unittest.TestCase):
 
     def test(self):
