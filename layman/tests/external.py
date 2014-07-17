@@ -13,9 +13,13 @@
 # Author(s):
 #             Sebastian Pipping <sebastian@pipping.org>
 #
+
+from __future__ import print_function
+
 '''Runs external (non-doctest) test cases.'''
 
 import os
+import sys
 import shutil
 import tempfile
 import unittest
@@ -25,6 +29,7 @@ try:
 except ImportError:
     import urllib
 
+from  layman.api              import LaymanAPI
 from  layman.db               import DB
 from  layman.dbbase           import DbBase
 from  layman.compatibility    import fileopen
@@ -117,6 +122,53 @@ class AddDeleteEnableDisableFromDB(unittest.TestCase):
             success = True
 
         self.assertTrue(success)
+
+
+class FetchRemoteList(unittest.TestCase):
+
+    def test(self):
+        tmpdir = tempfile.mkdtemp(prefix='laymantmp_')
+        cache = os.path.join(tmpdir, 'cache')
+
+        my_opts = {
+                   'overlays': ['file://'\
+                                + HERE + '/testfiles/global-overlays.xml'],
+                   'cache': cache,
+                   'nocheck': 'yes',
+                   'proxy': None,
+                   'quietness': 3
+                  }
+
+        config = OptionConfig(my_opts)
+
+        api = LaymanAPI(config)
+        success = api.fetch_remote_list()
+        self.assertTrue(success)
+
+        filename = api._get_remote_db().filepath(config['overlays']) + '.xml'
+
+        with fileopen(filename, 'r') as b:
+            for line in b.readlines():
+                # Test to see if every line
+                # is valid.
+                self.assertTrue(line)
+                print(line, end='')
+
+        # Check if we get available overlays.
+        available = api.get_available()
+        self.assertTrue(available)
+
+        # Test the info of an overlay.
+        all_info = api.get_all_info('wrobel')
+        info = all_info['wrobel']
+        self.assertTrue(info)
+
+        self.assertTrue(info['status'])
+        self.assertTrue(info['description'])
+        self.assertTrue(info['sources'])
+
+        os.unlink(filename)
+        shutil.rmtree(tmpdir)
 
 
 class Unicode(unittest.TestCase):
