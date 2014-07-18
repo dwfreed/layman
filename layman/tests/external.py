@@ -266,7 +266,8 @@ class PathUtil(unittest.TestCase):
 class Unicode(unittest.TestCase):
     def _overlays_bug(self, number):
         config = BareConfig()
-        filename = os.path.join(HERE, 'testfiles', 'overlays_bug_%d.xml' % number)
+        filename = os.path.join(HERE, 'testfiles', 'overlays_bug_%d.xml'\
+                                                    % number)
         o = DbBase(config, [filename])
         for verbose in (True, False):
             for t in o.list(verbose=verbose):
@@ -278,6 +279,71 @@ class Unicode(unittest.TestCase):
 
     def test_286290(self):
         self._overlays_bug(286290)
+
+
+class ReadWriteSelectListDbBase(unittest.TestCase):
+
+    def list_db(self):
+        output = Message()
+        config = {
+                  'output': output,
+                  'svn_command': '/usr/bin/svn',
+                  'rsync_command':'/usr/bin/rsync'
+                 }
+        db = DbBase(config, [HERE + '/testfiles/global-overlays.xml', ])
+
+        for info in db.list(verbose=True):
+            self.assertTrue(info[0])
+            print(info[0])
+
+        for info in db.list(verbose=False, width=80):
+            self.assertTrue(info[0])
+            print(info[0])
+
+
+    def read_db(self):
+        output = Message()
+        config = {'output': output}
+        db = DbBase(config, [HERE + '/testfiles/global-overlays.xml', ])
+        self.assertEqual(db.overlays.keys(), ['wrobel', 'wrobel-stable'])
+
+        self.assertEqual(\
+            list(db.overlays['wrobel-stable'].source_uris()),
+            ['rsync://gunnarwrobel.de/wrobel-stable'])
+
+
+    def select_db(self):
+        output = Message()
+        config = {'output': output}
+        db = DbBase(config, [HERE + '/testfiles/global-overlays.xml', ])
+        self.assertEqual(\
+            list(db.select('wrobel-stable').source_uris()),
+            ['rsync://gunnarwrobel.de/wrobel-stable'])
+
+
+    def write_db(self):
+        tmpdir = tempfile.mkdtemp(prefix='laymantmp_')
+        test_xml = os.path.join(tmpdir, 'test.xml')
+        config = BareConfig()
+        a = DbBase(config, [HERE + '/testfiles/global-overlays.xml', ])
+        b = DbBase({'output': Message()}, [test_xml,])
+
+        b.overlays['wrobel-stable'] = a.overlays['wrobel-stable']
+        b.write(test_xml)
+
+        c = DbBase({'output': Message()}, [test_xml,])
+        self.assertEquals(c.overlays.keys(), ['wrobel-stable'])
+
+        # Clean up:
+        os.unlink(test_xml)
+        shutil.rmtree(tmpdir)
+
+
+    def test(self):
+        self.list_db()
+        self.read_db()
+        self.select_db()
+        self.write_db()
 
 
 # http://bugs.gentoo.org/show_bug.cgi?id=304547
