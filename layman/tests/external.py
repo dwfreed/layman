@@ -29,6 +29,7 @@ try:
 except ImportError:
     import urllib
 
+from  layman.argsparser       import ArgsParser
 from  layman.api              import LaymanAPI
 from  layman.db               import DB
 from  layman.dbbase           import DbBase
@@ -122,6 +123,23 @@ class AddDeleteEnableDisableFromDB(unittest.TestCase):
             success = True
 
         self.assertTrue(success)
+
+
+class CLIArgs(unittest.TestCase):
+
+    def test(self):
+        # Append cli args to sys.argv with correspoding options:
+        sys.argv.append('--config')
+        sys.argv.append(HERE + '/../../etc/layman.cfg')
+
+        sys.argv.append('--overlay_defs')
+        sys.argv.append('')
+
+        # Test the passed in cli opts on the ArgsParser class:
+        a = ArgsParser()
+
+        self.assertTrue(a['overlays'])
+        self.assertTrue(sorted(a.keys()))
 
 
 class CreateConfig(unittest.TestCase):
