@@ -23,6 +23,7 @@ import sys
 import shutil
 import tempfile
 import unittest
+import xml.etree.ElementTree as ET # Python 2.5
 #Py3
 try:
     import urllib.request as urllib
@@ -247,6 +248,51 @@ class FormatBranchCategory(unittest.TestCase):
         # Same content from old/layman-global.txt
         #   and new/repositories.xml format?
         self.assertTrue(os1 == os2)
+
+
+class OverlayObjTest(unittest.TestCase):
+
+    def objattribs(self):
+        document = ET.parse(HERE + '/testfiles/global-overlays.xml')
+        overlays = document.findall('overlay') + document.findall('repo')
+        output = Message()
+
+        ovl_a = Overlay({'output': output}, overlays[0])
+        self.assertEqual(ovl_a.name, 'wrobel')
+        self.assertEqual(ovl_a.is_official(), True)
+        self.assertEqual(\
+            list(ovl_a.source_uris()),
+            ['https://overlays.gentoo.org/svn/dev/wrobel'])
+        self.assertEqual(ovl_a.owner_email, 'nobody@gentoo.org')
+        self.assertEqual(ovl_a.descriptions, ['Test'])
+        self.assertEqual(ovl_a.priority, 10)
+
+        ovl_b = Overlay({'output': output}, overlays[1])
+        self.assertEqual(ovl_b.is_official(), False)
+
+
+    def getinfostr(self):
+        document = ET.parse(HERE + '/testfiles/global-overlays.xml')
+        overlays = document.findall('overlay') + document.findall('repo')
+        output = Message()
+
+        ovl = Overlay({'output': output}, overlays[0])
+        print(ovl.get_infostr())
+
+
+    def getshortlist(self):
+        document = ET.parse(HERE + '/testfiles/global-overlays.xml')
+        overlays = document.findall('overlay') + document.findall('repo')
+        output = Message()
+
+        ovl = Overlay({'output': output}, overlays[0])
+        print(ovl.short_list(80))
+
+
+    def test(self):
+        self.objattribs()
+        self.getinfostr()
+        self.getshortlist()
 
 
 class PathUtil(unittest.TestCase):
