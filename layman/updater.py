@@ -85,9 +85,14 @@ class Main(object):
 
 
     def check_is_new(self):
+        print_instructions = False
+        if not os.access(self.config['repos_conf'], os.F_OK):
+            self.create_repos_conf()
+            print_instructions = True
         if not os.access(self.config['make_conf'], os.F_OK):
             self.create_make_conf()
-            self.print_instructions()
+        if print_instructions:
+            print_instructions = True
             return True
         return False
 
